@@ -5,7 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:conv="clr-namespace:v2rayN.Converters"
     xmlns:local="clr-namespace:v2rayN"
-    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary xmlns:system="clr-namespace:System;assembly=mscorlib">

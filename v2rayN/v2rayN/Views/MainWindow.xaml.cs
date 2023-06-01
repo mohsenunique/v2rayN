@@ -643,6 +643,3 @@ namespace v2rayN.Views
         }
     }
 }
-        #endregion Drag and Drop
-    }
-}
