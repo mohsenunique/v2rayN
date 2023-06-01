@@ -300,9 +300,6 @@
   <data name="SaveClientConfigurationIn" xml:space="preserve">
     <value>The client configuration file is saved at: {0}</value>
   </data>
-  <data name="SaveServerConfigurationIn" xml:space="preserve">
-    <value>The server configuration file is saved at: {0}</value>
-  </data>
   <data name="StartService" xml:space="preserve">
     <value>Start service ({0})...</value>
   </data>
@@ -467,7 +464,7 @@
     <value>Servers</value>
   </data>
   <data name="menuSetting" xml:space="preserve">
-    <value>Setting</value>
+    <value>Settings</value>
   </data>
   <data name="menuSubGroupUpdate" xml:space="preserve">
     <value>Update current subscription without proxy</value>
@@ -479,7 +476,7 @@
     <value>Subscription group</value>
   </data>
   <data name="menuSubSetting" xml:space="preserve">
-    <value>Subscription group Setting</value>
+    <value>Subscription group Settings</value>
   </data>
   <data name="menuSubUpdate" xml:space="preserve">
     <value>Update subscription without proxy</value>
@@ -507,6 +504,9 @@
   </data>
   <data name="TbSettingsColorMode" xml:space="preserve">
     <value>Dark Mode</value>
+  </data>
+  <data name="TbSettingsFollowSystemTheme" xml:space="preserve">
+    <value>Follow System Theme</value>
   </data>
   <data name="TbSettingsLanguage" xml:space="preserve">
     <value>Language(Restart)</value>
@@ -552,9 +552,6 @@
   </data>
   <data name="menuExport2ClientConfig" xml:space="preserve">
     <value>Export selected server for client configuration</value>
-  </data>
-  <data name="menuExport2ServerConfig" xml:space="preserve">
-    <value>Export selected server for server configuration</value>
   </data>
   <data name="menuExport2ShareUrl" xml:space="preserve">
     <value>Export share URLs to clipboard (Ctrl+C)</value>
@@ -707,7 +704,7 @@
     <value>txtPreSocksPort</value>
   </data>
   <data name="TipPreSocksPort" xml:space="preserve">
-    <value>* After setting this value, an socks service will be started using V2ray to provide functions such as speed display</value>
+    <value>* After setting this value, an socks service will be started using sing-box to provide functions such as speed display</value>
   </data>
   <data name="TbBrowse" xml:space="preserve">
     <value>Browse</value>
@@ -725,13 +722,13 @@
     <value>Auto hide startup</value>
   </data>
   <data name="TbSettingsAutoUpdateInterval" xml:space="preserve">
-    <value>Automatic update interval of and Geo (hours)</value>
+    <value>Automatic update interval of Geo (hours)</value>
   </data>
   <data name="TbSettingsCore" xml:space="preserve">
     <value>Core: basic settings</value>
   </data>
   <data name="TbSettingsCoreDns" xml:space="preserve">
-    <value>Core: DNS settings</value>
+    <value>V2ray DNS settings</value>
   </data>
   <data name="TbSettingsCoreKcp" xml:space="preserve">
     <value>Core: KCP settings</value>
@@ -827,7 +824,7 @@
     <value>Display GUI</value>
   </data>
   <data name="TbGlobalHotkeySetting" xml:space="preserve">
-    <value>GlobalHotkey Setting</value>
+    <value>GlobalHotkey Settings</value>
   </data>
   <data name="TbGlobalHotkeySettingTip" xml:space="preserve">
     <value>Set directly by pressing the keyboard, Take effect after restart</value>
@@ -884,10 +881,10 @@
     <value>Import Advanced Rules</value>
   </data>
   <data name="menuRoutingAdvancedRemove" xml:space="preserve">
-    <value>Remove selected</value>
+    <value>Remove selected (Delete)</value>
   </data>
   <data name="menuRoutingAdvancedSetDefault" xml:space="preserve">
-    <value>Set as active rule</value>
+    <value>Set as active rule(Enter)</value>
   </data>
   <data name="menuRoutingBasic" xml:space="preserve">
     <value>Basic Function</value>
@@ -929,7 +926,7 @@
     <value>Import Rules From Sub Url</value>
   </data>
   <data name="menuRoutingRuleSetting" xml:space="preserve">
-    <value>Rule Setting</value>
+    <value>Rule Settings</value>
   </data>
   <data name="menuRuleAdd" xml:space="preserve">
     <value>Rule Add</value>
@@ -941,19 +938,19 @@
     <value>Rule List</value>
   </data>
   <data name="menuRuleRemove" xml:space="preserve">
-    <value>Remove Rules</value>
+    <value>Remove Rules (Delete)</value>
   </data>
   <data name="menuRoutingRuleDetailsSetting" xml:space="preserve">
     <value>RoutingRuleDetailsSetting</value>
   </data>
   <data name="TbAutoSort" xml:space="preserve">
-    <value>Domain and ip are auto sorted when saving</value>
+    <value>Domain, ip, process are auto sorted when saving</value>
   </data>
   <data name="TbRuleobjectDoc" xml:space="preserve">
     <value>Ruleobject Doc</value>
   </data>
   <data name="TbDnsObjectDoc" xml:space="preserve">
-    <value>Support DnsObject</value>
+    <value>Support DnsObject, Click to view the document</value>
   </data>
   <data name="SubUrlTips" xml:space="preserve">
     <value>Group please leave blank here</value>
@@ -1063,9 +1060,6 @@
   <data name="TbSettingsTunModeBypassMode" xml:space="preserve">
     <value>Bypass Mode</value>
   </data>
-  <data name="TbSettingsTunModeBypassModeTip" xml:space="preserve">
-    <value>Enable: If no route matches, the final proxy</value>
-  </data>
   <data name="TbSettingsSpeedTestTimeout" xml:space="preserve">
     <value>SpeedTest Single Timeout Value</value>
   </data>
@@ -1103,7 +1097,7 @@
     <value>Reboot as administrator</value>
   </data>
   <data name="LvMoreUrl" xml:space="preserve">
-    <value>More urls, separated by commas</value>
+    <value>More urls, separated by commas;Subscription conversion will be invalid</value>
   </data>
   <data name="SpeedDisplayText" xml:space="preserve">
     <value>{0}:{1}/s↑ | {2}/s↓</value>
@@ -1113,5 +1107,38 @@
   </data>
   <data name="TbSettingsLogEnabledToFile" xml:space="preserve">
     <value>Enable logging to file</value>
+  </data>
+  <data name="LvConvertTarget" xml:space="preserve">
+    <value>Convert target type</value>
+  </data>
+  <data name="LvConvertTargetTip" xml:space="preserve">
+    <value>Please leave blank if no conversion is required</value>
+  </data>
+  <data name="menuDNSSetting" xml:space="preserve">
+    <value>DNS Settings</value>
+  </data>
+  <data name="TbSettingsCoreDnsSingbox" xml:space="preserve">
+    <value>sing-box DNS settings</value>
+  </data>
+  <data name="TbDnsSingboxObjectDoc" xml:space="preserve">
+    <value>Please fill in DNS Structure, Click to view the document</value>
+  </data>
+  <data name="TBSettingDnsImportDefConfig" xml:space="preserve">
+    <value>Click to import default DNS config</value>
+  </data>
+  <data name="TbdomainStrategy4Singbox" xml:space="preserve">
+    <value>sing-box domain strategy</value>
+  </data>
+  <data name="TbSettingsMux4SboxProtocol" xml:space="preserve">
+    <value>sing-box Mux Protocol</value>
+  </data>
+  <data name="TbRoutingRuleProcess" xml:space="preserve">
+    <value>Full process name (Tun mode)</value>
+  </data>
+  <data name="TbRoutingRuleIP" xml:space="preserve">
+    <value>IP or IP CIDR</value>
+  </data>
+  <data name="TbRoutingRuleDomain" xml:space="preserve">
+    <value>Domain</value>
   </data>
 </root>

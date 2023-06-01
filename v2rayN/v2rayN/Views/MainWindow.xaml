@@ -94,7 +94,6 @@
                                     x:Name="menuAddServerViaScan"
                                     Height="{StaticResource MenuItemHeight}"
                                     Header="{x:Static resx:ResUI.menuAddServerViaScan}" />
-
                             </MenuItem>
                         </Menu>
                         <Separator />
@@ -152,6 +151,10 @@
                                     x:Name="menuRoutingSetting"
                                     Height="{StaticResource MenuItemHeight}"
                                     Header="{x:Static resx:ResUI.menuRoutingSetting}" />
+                                <MenuItem
+                                    x:Name="menuDNSSetting"
+                                    Height="{StaticResource MenuItemHeight}"
+                                    Header="{x:Static resx:ResUI.menuDNSSetting}" />
                                 <MenuItem
                                     x:Name="menuGlobalHotkeySetting"
                                     Height="{StaticResource MenuItemHeight}"
@@ -230,6 +233,11 @@
                                     Header="Clash.Meta Core" />
                                 <Separator Margin="-40,5" />
                                 <MenuItem
+                                    x:Name="menuCheckUpdateSingBoxCore"
+                                    Height="{StaticResource MenuItemHeight}"
+                                    Header="sing-box Core" />
+                                <Separator Margin="-40,5" />
+                                <MenuItem
                                     x:Name="menuCheckUpdateGeo"
                                     Height="{StaticResource MenuItemHeight}"
                                     Header="Geo files" />
@@ -293,6 +301,7 @@
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
+										<RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -311,17 +320,30 @@
                                         x:Name="togDarkMode"
                                         Grid.Row="0"
                                         Grid.Column="1"
+                                        Margin="8"
+                                        IsEnabled="{Binding ElementName=followSystemTheme, Path=IsChecked, Converter={StaticResource InverseBooleanConverter}}" />
+
+									<TextBlock
+	                                    Grid.Row="1"
+	                                    Grid.Column="0"
+	                                    VerticalAlignment="Center"
+	                                    Style="{StaticResource ToolbarTextBlock}"
+	                                    Text="{x:Static resx:ResUI.TbSettingsFollowSystemTheme}" />
+									<ToggleButton
+                                        x:Name="followSystemTheme"
+                                        Grid.Row="1"
+                                        Grid.Column="1"
                                         Margin="8" />
 
                                     <TextBlock
-                                        Grid.Row="1"
+                                        Grid.Row="2"
                                         Grid.Column="0"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource ToolbarTextBlock}"
                                         Text="{x:Static resx:ResUI.TbSettingsColor}" />
                                     <ComboBox
                                         x:Name="cmbSwatches"
-                                        Grid.Row="1"
+                                        Grid.Row="2"
                                         Grid.Column="1"
                                         Width="100"
                                         Margin="8"
@@ -329,35 +351,34 @@
                                         Style="{StaticResource DefComboBox}" />
 
                                     <TextBlock
-                                        Grid.Row="2"
+                                        Grid.Row="3"
                                         Grid.Column="0"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource ToolbarTextBlock}"
                                         Text="{x:Static resx:ResUI.TbSettingsFontSize}" />
                                     <ComboBox
                                         x:Name="cmbCurrentFontSize"
-                                        Grid.Row="2"
+                                        Grid.Row="3"
                                         Grid.Column="1"
                                         Width="100"
                                         Margin="8"
                                         Style="{StaticResource DefComboBox}" />
 
                                     <TextBlock
-                                        Grid.Row="3"
+                                        Grid.Row="4"
                                         Grid.Column="0"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource ToolbarTextBlock}"
                                         Text="{x:Static resx:ResUI.TbSettingsLanguage}" />
                                     <ComboBox
                                         x:Name="cmbCurrentLanguage"
-                                        Grid.Row="3"
+                                        Grid.Row="4"
                                         Grid.Column="1"
                                         Width="100"
                                         Margin="8"
                                         materialDesign:HintAssist.Hint="Language"
                                         SelectionChanged="cmbCurrentLanguage_SelectionChanged"
                                         Style="{StaticResource DefComboBox}" />
-
                                 </Grid>
                             </StackPanel>
                         </materialDesign:PopupBox>
@@ -607,10 +628,6 @@
                                     Height="{StaticResource MenuItemHeight}"
                                     Header="{x:Static resx:ResUI.menuExport2ClientConfig}" />
                                 <MenuItem
-                                    x:Name="menuExport2ServerConfig"
-                                    Height="{StaticResource MenuItemHeight}"
-                                    Header="{x:Static resx:ResUI.menuExport2ServerConfig}" />
-                                <MenuItem
                                     x:Name="menuExport2ShareUrl"
                                     Height="{StaticResource MenuItemHeight}"
                                     Header="{x:Static resx:ResUI.menuExport2ShareUrl}" />
@@ -623,7 +640,6 @@
                         <DataGrid.Resources>
                             <Style BasedOn="{StaticResource MaterialDesignDataGridRow}" TargetType="DataGridRow">
                                 <EventSetter Event="MouseDoubleClick" Handler="LstProfiles_MouseDoubleClick" />
-
                             </Style>
                             <Style BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}" TargetType="DataGridColumnHeader">
                                 <EventSetter Event="Click" Handler="LstProfiles_ColumnHeader_Click" />
@@ -638,7 +654,6 @@
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-
                         </DataGrid.Resources>
                         <DataGrid.Columns>
 
@@ -730,13 +745,11 @@
                                 Binding="{Binding totalDown}"
                                 ExName="totalDown"
                                 Header="{x:Static resx:ResUI.LvTotalDownloadDataAmount}" />
-
                         </DataGrid.Columns>
                     </DataGrid>
                     <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" />
                     <local:MsgView Grid.Row="2" />
                 </Grid>
-
             </DockPanel>
             <tb:TaskbarIcon
                 x:Name="tbNotify"
@@ -846,6 +859,7 @@
                 </tb:TaskbarIcon.ContextMenu>
                 <tb:TaskbarIcon.TrayToolTip>
                     <Border
+                        x:Name="borTrayToolTip"
                         Width="Auto"
                         Height="Auto"
                         Background="{DynamicResource MaterialDesignLightBackground}"
@@ -863,6 +877,5 @@
             </tb:TaskbarIcon>
             <materialDesign:Snackbar x:Name="MainSnackbar" MessageQueue="{materialDesign:MessageQueue}" />
         </Grid>
-
     </materialDesign:DialogHost>
 </reactiveui:ReactiveWindow>

@@ -25,6 +25,10 @@ namespace v2rayN.Views
                 cmbdomainStrategy.Items.Add(it);
             });
             cmbdomainStrategy.Items.Add(string.Empty);
+            Global.domainStrategys4Singbox.ForEach(it =>
+            {
+                cmbdomainStrategy4Singbox.Items.Add(it);
+            });
 
             this.WhenActivated(disposables =>
             {
@@ -33,6 +37,8 @@ namespace v2rayN.Views
 
                 this.Bind(ViewModel, vm => vm.SelectedRouting.remarks, v => v.txtRemarks.Text).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SelectedRouting.domainStrategy, v => v.cmbdomainStrategy.Text).DisposeWith(disposables);
+                this.Bind(ViewModel, vm => vm.SelectedRouting.domainStrategy4Singbox, v => v.cmbdomainStrategy4Singbox.Text).DisposeWith(disposables);
+
                 this.Bind(ViewModel, vm => vm.SelectedRouting.url, v => v.txtUrl.Text).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SelectedRouting.customIcon, v => v.txtCustomIcon.Text).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SelectedRouting.sort, v => v.txtSort.Text).DisposeWith(disposables);
@@ -51,9 +57,9 @@ namespace v2rayN.Views
                 this.BindCommand(ViewModel, vm => vm.MoveBottomCmd, v => v.menuMoveBottom).DisposeWith(disposables);
 
                 this.BindCommand(ViewModel, vm => vm.SaveCmd, v => v.btnSave).DisposeWith(disposables);
-
             });
         }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             txtRemarks.Focus();
@@ -90,6 +96,10 @@ namespace v2rayN.Views
                 {
                     ViewModel?.MoveRule(EMove.Bottom);
                 }
+                else if (e.Key == Key.Delete)
+                {
+                    ViewModel?.RuleRemove();
+                }
             }
         }
 
@@ -102,6 +112,7 @@ namespace v2rayN.Views
         {
             ViewModel?.RuleEdit(false);
         }
+
         private void menuRuleSelectAll_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             lstRules.SelectAll();

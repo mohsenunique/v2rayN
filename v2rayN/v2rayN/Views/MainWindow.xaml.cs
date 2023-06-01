@@ -3,6 +3,7 @@ using Splat;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reactive.Disposables;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -94,7 +95,7 @@ namespace v2rayN.Views
                 this.BindCommand(ViewModel, vm => vm.MoveDownCmd, v => v.menuMoveDown).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.MoveBottomCmd, v => v.menuMoveBottom).DisposeWith(disposables);
 
-                //servers ping 
+                //servers ping
                 this.BindCommand(ViewModel, vm => vm.MixedTestServerCmd, v => v.menuMixedTestServer).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.PingServerCmd, v => v.menuPingServer).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.TcpingServerCmd, v => v.menuTcpingServer).DisposeWith(disposables);
@@ -104,7 +105,6 @@ namespace v2rayN.Views
 
                 //servers export
                 this.BindCommand(ViewModel, vm => vm.Export2ClientConfigCmd, v => v.menuExport2ClientConfig).DisposeWith(disposables);
-                this.BindCommand(ViewModel, vm => vm.Export2ServerConfigCmd, v => v.menuExport2ServerConfig).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.Export2ShareUrlCmd, v => v.menuExport2ShareUrl).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.Export2SubContentCmd, v => v.menuExport2SubContent).DisposeWith(disposables);
 
@@ -118,6 +118,7 @@ namespace v2rayN.Views
                 //setting
                 this.BindCommand(ViewModel, vm => vm.OptionSettingCmd, v => v.menuOptionSetting).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.RoutingSettingCmd, v => v.menuRoutingSetting).DisposeWith(disposables);
+                this.BindCommand(ViewModel, vm => vm.DNSSettingCmd, v => v.menuDNSSetting).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.GlobalHotkeySettingCmd, v => v.menuGlobalHotkeySetting).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.RebootAsAdminCmd, v => v.menuRebootAsAdmin).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.ClearServerStatisticsCmd, v => v.menuClearServerStatistics).DisposeWith(disposables);
@@ -130,6 +131,7 @@ namespace v2rayN.Views
                 this.BindCommand(ViewModel, vm => vm.CheckUpdateXrayCoreCmd, v => v.menuCheckUpdateXrayCore).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.CheckUpdateClashCoreCmd, v => v.menuCheckUpdateClashCore).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.CheckUpdateClashMetaCoreCmd, v => v.menuCheckUpdateClashMetaCore).DisposeWith(disposables);
+                this.BindCommand(ViewModel, vm => vm.CheckUpdateSingBoxCoreCmd, v => v.menuCheckUpdateSingBoxCore).DisposeWith(disposables);
                 this.BindCommand(ViewModel, vm => vm.CheckUpdateGeoCmd, v => v.menuCheckUpdateGeo).DisposeWith(disposables);
 
                 this.BindCommand(ViewModel, vm => vm.ReloadCmd, v => v.menuReload).DisposeWith(disposables);
@@ -165,6 +167,7 @@ namespace v2rayN.Views
                 this.OneWayBind(ViewModel, vm => vm.RunningServerToolTipText, v => v.tbNotify.ToolTipText).DisposeWith(disposables);
                 this.OneWayBind(ViewModel, vm => vm.NotifyLeftClickCmd, v => v.tbNotify.LeftClickCommand).DisposeWith(disposables);
                 this.OneWayBind(ViewModel, vm => vm.AppIcon, v => v.Icon).DisposeWith(disposables);
+                this.OneWayBind(ViewModel, vm => vm.BlShowTrayTip, v => v.borTrayToolTip.Visibility).DisposeWith(disposables);
 
                 //status bar
                 this.OneWayBind(ViewModel, vm => vm.InboundDisplay, v => v.txtInboundDisplay.Text).DisposeWith(disposables);
@@ -182,6 +185,7 @@ namespace v2rayN.Views
 
                 //UI
                 this.Bind(ViewModel, vm => vm.ColorModeDark, v => v.togDarkMode.IsChecked).DisposeWith(disposables);
+                this.Bind(ViewModel, vm => vm.FollowSystemTheme, v => v.followSystemTheme.IsChecked).DisposeWith(disposables);
                 this.OneWayBind(ViewModel, vm => vm.Swatches, v => v.cmbSwatches.ItemsSource).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.SelectedSwatch, v => v.cmbSwatches.SelectedItem).DisposeWith(disposables);
                 this.Bind(ViewModel, vm => vm.CurrentFontSize, v => v.cmbCurrentFontSize.Text).DisposeWith(disposables);
@@ -205,9 +209,28 @@ namespace v2rayN.Views
             {
                 RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
             }
+
+            var helper = new WindowInteropHelper(this);
+            var hwndSource = HwndSource.FromHwnd(helper.EnsureHandle());
+            hwndSource.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (_config.uiItem.followSystemTheme)
+                {
+                    const int WM_SETTINGCHANGE = 0x001A;
+                    if (msg == WM_SETTINGCHANGE)
+                    {
+                        if (wParam == IntPtr.Zero && Marshal.PtrToStringUni(lParam) == "ImmersiveColorSet")
+                        {
+                            ViewModel?.ModifyTheme(!Utils.IsLightTheme());
+                        }
+                    }
+                }
+
+                return IntPtr.Zero;
+            });
         }
 
-        #region Event 
+        #region Event
 
         private void UpdateViewHandler(EViewAction action)
         {
@@ -251,14 +274,10 @@ namespace v2rayN.Views
         {
             ViewModel.SelectedProfiles = lstProfiles.SelectedItems.Cast<ProfileItemModel>().ToList();
         }
+
         private void LstProfiles_LoadingRow(object? sender, DataGridRowEventArgs e)
         {
-            //if (e.Row.GetIndex() == 0)
-            //{
-            //    lstProfiles.Focus();
-            //}
-
-            e.Row.Header = e.Row.GetIndex() + 1;
+            e.Row.Header = $" {e.Row.GetIndex() + 1}";
         }
 
         private void LstProfiles_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -382,12 +401,12 @@ namespace v2rayN.Views
             }
         }
 
-
         private void menuClose_Click(object sender, RoutedEventArgs e)
         {
             StorageUI();
             ViewModel?.ShowHideWindow(false);
         }
+
         private void menuPromotion_Click(object sender, RoutedEventArgs e)
         {
             Utils.ProcessStart($"{Utils.Base64Decode(Global.PromotionUrl)}?t={DateTime.Now.Ticks}");
@@ -397,6 +416,7 @@ namespace v2rayN.Views
         {
             ViewModel?.TestServerAvailability();
         }
+
         private void menuSettingsSetUWP_Click(object sender, RoutedEventArgs e)
         {
             Utils.ProcessStart(Utils.GetBinPath("EnableLoopback.exe"));
@@ -406,6 +426,7 @@ namespace v2rayN.Views
         {
             AutofitColumnWidth();
         }
+
         private void AutofitColumnWidth()
         {
             foreach (var it in lstProfiles.Columns)
@@ -421,9 +442,10 @@ namespace v2rayN.Views
                 ViewModel?.RefreshServers();
             }
         }
-        #endregion
 
-        #region UI          
+        #endregion Event
+
+        #region UI
 
         private void RestoreUI()
         {
@@ -473,6 +495,7 @@ namespace v2rayN.Views
                 colTotalDown.Visibility = Visibility.Hidden;
             }
         }
+
         private void StorageUI()
         {
             _config.uiItem.mainWidth = this.Width;
@@ -485,7 +508,7 @@ namespace v2rayN.Views
                 lvColumnItem.Add(new()
                 {
                     Name = item2.ExName,
-                    Width = item2.Visibility == Visibility.Visible ? Convert.ToInt32(item2.ActualWidth) : 0,
+                    Width = item2.Visibility == Visibility.Visible ? Convert.ToInt32(item2.ActualWidth) : -1,
                     Index = item2.DisplayIndex
                 });
             }
@@ -509,6 +532,7 @@ namespace v2rayN.Views
                 menuHelp.Items.Add(item);
             }
         }
+
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is MenuItem item)
@@ -517,8 +541,8 @@ namespace v2rayN.Views
             }
         }
 
+        #endregion UI
 
-        #endregion
         #region Drag and Drop
 
         private Point startPoint = new();
@@ -545,12 +569,12 @@ namespace v2rayN.Views
             return null;
         }
 
-
         private void LstProfiles_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             // Get current mouse position
             startPoint = e.GetPosition(null);
         }
+
         private void LstProfiles_MouseMove(object sender, MouseEventArgs e)
         {
             // Get the current mouse position
@@ -599,7 +623,7 @@ namespace v2rayN.Views
                 // Find the data behind the Item
                 ProfileItemModel item = (ProfileItemModel)listView.ItemContainerGenerator.ItemFromContainer(listViewItem);
                 if (item == null) return;
-                // Move item into observable collection 
+                // Move item into observable collection
                 // (this will be automatically reflected to lstView.ItemsSource)
                 e.Effects = DragDropEffects.Move;
 
@@ -617,5 +641,8 @@ namespace v2rayN.Views
                 App.ChangeCulture(new CultureInfo(e.AddedItems[0].ToString()));
 
         }
+    }
+}
+        #endregion Drag and Drop
     }
 }

@@ -9,12 +9,13 @@ using System.Windows;
 using v2rayN.Base;
 using v2rayN.Mode;
 using v2rayN.Resx;
+using v2rayN.Tool;
 
 namespace v2rayN.Handler
 {
-    class UpdateHandle
+    internal class UpdateHandle
     {
-        Action<bool, string> _updateFunc;
+        private Action<bool, string> _updateFunc;
         private Config _config;
 
         public event EventHandler<ResultEventArgs> AbsoluteCompleted;
@@ -84,7 +85,7 @@ namespace v2rayN.Handler
                     _updateFunc(false, string.Format(ResUI.MsgParsingSuccessfully, "v2rayN"));
 
                     url = args.Msg;
-                    askToDownload(downloadHandle, url, true);
+                    _ = askToDownload(downloadHandle, url, true);
                 }
                 else
                 {
@@ -95,7 +96,6 @@ namespace v2rayN.Handler
             _updateFunc(false, string.Format(ResUI.MsgStartUpdating, "v2rayN"));
             CheckUpdateAsync(ECoreType.v2rayN, preRelease);
         }
-
 
         public void CheckUpdateCore(ECoreType type, Config config, Action<bool, string> update, bool preRelease)
         {
@@ -136,7 +136,7 @@ namespace v2rayN.Handler
                 {
                     _updateFunc(false, string.Format(ResUI.MsgParsingSuccessfully, "Core"));
                     url = args.Msg;
-                    askToDownload(downloadHandle, url, true);
+                    _ = askToDownload(downloadHandle, url, true);
                 }
                 else
                 {
@@ -147,7 +147,6 @@ namespace v2rayN.Handler
             _updateFunc(false, string.Format(ResUI.MsgStartUpdating, "Core"));
             CheckUpdateAsync(type, preRelease);
         }
-
 
         public void UpdateSubscriptionProcess(Config config, string subId, bool blProxy, Action<bool, string> update)
         {
@@ -192,6 +191,20 @@ namespace v2rayN.Handler
 
                     //one url
                     url = Utils.GetPunycode(url);
+                    //convert
+                    if (!Utils.IsNullOrEmpty(item.convertTarget))
+                    {
+                        var subConvertUrl = string.IsNullOrEmpty(config.constItem.subConvertUrl) ? Global.SubConvertUrls.FirstOrDefault() : config.constItem.subConvertUrl;
+                        url = string.Format(subConvertUrl!, Utils.UrlEncode(url));
+                        if (!url.Contains("target="))
+                        {
+                            url += string.Format("&target={0}", item.convertTarget);
+                        }
+                        if (!url.Contains("config="))
+                        {
+                            url += string.Format("&config={0}", Global.SubConvertConfig.FirstOrDefault());
+                        }
+                    }
                     var result = await downloadHandle.TryDownloadString(url, blProxy, userAgent);
                     if (blProxy && Utils.IsNullOrEmpty(result))
                     {
@@ -199,7 +212,7 @@ namespace v2rayN.Handler
                     }
 
                     //more url
-                    if (!Utils.IsNullOrEmpty(item.moreUrl.TrimEx()))
+                    if (Utils.IsNullOrEmpty(item.convertTarget) && !Utils.IsNullOrEmpty(item.moreUrl.TrimEx()))
                     {
                         if (!Utils.IsNullOrEmpty(result) && Utils.IsBase64String(result))
                         {
@@ -264,11 +277,275 @@ namespace v2rayN.Handler
                 }
 
                 _updateFunc(true, $"{ResUI.MsgUpdateSubscriptionEnd}");
-
             });
         }
 
-        public void UpdateGeoFile(string geoName, Config config, Action<bool, string> update)
+        public void UpdateGeoFileAll(Config config, Action<bool, string> update)
+        {
+            Task.Run(async () =>
+            {
+                await UpdateGeoFile("geosite", _config, update);
+                await UpdateGeoFile("geoip", _config, update);
+
+                await UpdateGeoFile4Singbox("geosite", _config, false, update);
+                await UpdateGeoFile4Singbox("geoip", _config, true, update);
+            });
+        }
+
+        public void RunAvailabilityCheck(Action<bool, string> update)
+        {
+            Task.Run(async () =>
+            {
+                var time = await (new DownloadHandle()).RunAvailabilityCheck(null);
+
+                update(false, string.Format(ResUI.TestMeOutput, time));
+            });
+        }
+
+        #region private
+
+        private async void CheckUpdateAsync(ECoreType type, bool preRelease)
+        {
+            try
+            {
+                var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
+                string url = coreInfo.coreReleaseApiUrl;
+
+                var result = await (new DownloadHandle()).DownloadStringAsync(url, true, "");
+                if (!Utils.IsNullOrEmpty(result))
+                {
+                    responseHandler(type, result, preRelease);
+                }
+                else
+                {
+                    Utils.SaveLog("StatusCode error: " + url);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.SaveLog(ex.Message, ex);
+                _updateFunc(false, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 获取V2RayCore版本
+        /// </summary>
+        private SemanticVersion getCoreVersion(ECoreType type)
+        {
+            try
+            {
+                var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
+                string filePath = string.Empty;
+                foreach (string name in coreInfo.coreExes)
+                {
+                    string vName = $"{name}.exe";
+                    vName = Utils.GetBinPath(vName, coreInfo.coreType);
+                    if (File.Exists(vName))
+                    {
+                        filePath = vName;
+                        break;
+                    }
+                }
+
+                if (!File.Exists(filePath))
+                {
+                    string msg = string.Format(ResUI.NotFoundCore, @"", "", "");
+                    //ShowMsg(true, msg);
+                    return new SemanticVersion("");
+                }
+
+                using Process p = new();
+                p.StartInfo.FileName = filePath;
+                p.StartInfo.Arguments = coreInfo.versionArg;
+                p.StartInfo.WorkingDirectory = Utils.StartupPath();
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardOutput = true;
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+                p.Start();
+                p.WaitForExit(5000);
+                string echo = p.StandardOutput.ReadToEnd();
+                string version = string.Empty;
+                switch (type)
+                {
+                    case ECoreType.v2fly:
+                    case ECoreType.SagerNet:
+                    case ECoreType.Xray:
+                    case ECoreType.v2fly_v5:
+                        version = Regex.Match(echo, $"{coreInfo.match} ([0-9.]+) \\(").Groups[1].Value;
+                        break;
+
+                    case ECoreType.clash:
+                    case ECoreType.clash_meta:
+                        version = Regex.Match(echo, $"v[0-9.]+").Groups[0].Value;
+                        break;
+
+                    case ECoreType.sing_box:
+                        version = Regex.Match(echo, $"([0-9.]+)").Groups[1].Value;
+                        break;
+                }
+                return new SemanticVersion(version);
+            }
+            catch (Exception ex)
+            {
+                Utils.SaveLog(ex.Message, ex);
+                _updateFunc(false, ex.Message);
+                return new SemanticVersion("");
+            }
+        }
+
+        private void responseHandler(ECoreType type, string gitHubReleaseApi, bool preRelease)
+        {
+            try
+            {
+                var gitHubReleases = Utils.FromJson<List<GitHubRelease>>(gitHubReleaseApi);
+                SemanticVersion version;
+                if (preRelease)
+                {
+                    version = new SemanticVersion(gitHubReleases!.First().TagName);
+                }
+                else
+                {
+                    version = new SemanticVersion(gitHubReleases!.First(r => r.Prerelease == false).TagName);
+                }
+                var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
+
+                SemanticVersion curVersion;
+                string message;
+                string url;
+                switch (type)
+                {
+                    case ECoreType.v2fly:
+                    case ECoreType.SagerNet:
+                    case ECoreType.Xray:
+                    case ECoreType.v2fly_v5:
+                        {
+                            curVersion = getCoreVersion(type);
+                            message = string.Format(ResUI.IsLatestCore, curVersion.ToVersionString("v"));
+                            string osBit = "64";
+                            switch (RuntimeInformation.ProcessArchitecture)
+                            {
+                                case Architecture.Arm64:
+                                    osBit = "arm64-v8a";
+                                    break;
+
+                                case Architecture.X86:
+                                    osBit = "32";
+                                    break;
+
+                                default:
+                                    osBit = "64";
+                                    break;
+                            }
+
+                            url = string.Format(coreInfo.coreDownloadUrl64, version.ToVersionString("v"), osBit);
+                            break;
+                        }
+                    case ECoreType.clash:
+                    case ECoreType.clash_meta:
+                        {
+                            curVersion = getCoreVersion(type);
+                            message = string.Format(ResUI.IsLatestCore, curVersion);
+                            switch (RuntimeInformation.ProcessArchitecture)
+                            {
+                                case Architecture.Arm64:
+                                    url = coreInfo.coreDownloadUrlArm64;
+                                    break;
+
+                                case Architecture.X86:
+                                    url = coreInfo.coreDownloadUrl32;
+                                    break;
+
+                                default:
+                                    url = coreInfo.coreDownloadUrl64;
+                                    break;
+                            }
+                            url = string.Format(url, version.ToVersionString("v"));
+                            break;
+                        }
+                    case ECoreType.sing_box:
+                        {
+                            curVersion = getCoreVersion(type);
+                            message = string.Format(ResUI.IsLatestCore, curVersion.ToVersionString("v"));
+                            switch (RuntimeInformation.ProcessArchitecture)
+                            {
+                                case Architecture.Arm64:
+                                    url = coreInfo.coreDownloadUrlArm64;
+                                    break;
+
+                                case Architecture.X86:
+                                    url = coreInfo.coreDownloadUrl32;
+                                    break;
+
+                                default:
+                                    url = coreInfo.coreDownloadUrl64;
+                                    break;
+                            }
+                            url = string.Format(url, version.ToVersionString("v"), version);
+                            break;
+                        }
+                    case ECoreType.v2rayN:
+                        {
+                            curVersion = new SemanticVersion(FileVersionInfo.GetVersionInfo(Utils.GetExePath()).FileVersion.ToString());
+                            message = string.Format(ResUI.IsLatestN, curVersion);
+                            switch (RuntimeInformation.ProcessArchitecture)
+                            {
+                                case Architecture.Arm64:
+                                    url = string.Format(coreInfo.coreDownloadUrlArm64, version);
+                                    break;
+
+                                case Architecture.X86:
+                                    url = string.Format(coreInfo.coreDownloadUrl32, version);
+                                    break;
+
+                                default:
+                                    url = string.Format(coreInfo.coreDownloadUrl64, version);
+                                    break;
+                            }
+                            break;
+                        }
+                    default:
+                        throw new ArgumentException("Type");
+                }
+
+                if (curVersion >= version)
+                {
+                    AbsoluteCompleted?.Invoke(this, new ResultEventArgs(false, message));
+                    return;
+                }
+
+                AbsoluteCompleted?.Invoke(this, new ResultEventArgs(true, url));
+            }
+            catch (Exception ex)
+            {
+                Utils.SaveLog(ex.Message, ex);
+                _updateFunc(false, ex.Message);
+            }
+        }
+
+        private async Task askToDownload(DownloadHandle downloadHandle, string url, bool blAsk)
+        {
+            bool blDownload = false;
+            if (blAsk)
+            {
+                if (UI.ShowYesNo(string.Format(ResUI.DownloadYesNo, url)) == MessageBoxResult.Yes)
+                {
+                    blDownload = true;
+                }
+            }
+            else
+            {
+                blDownload = true;
+            }
+            if (blDownload)
+            {
+                await downloadHandle.DownloadFileAsync(url, true, 600);
+            }
+        }
+
+        private async Task UpdateGeoFile(string geoName, Config config, Action<bool, string> update)
         {
             _config = config;
             _updateFunc = update;
@@ -312,240 +589,54 @@ namespace v2rayN.Handler
             {
                 _updateFunc(false, args.GetException().Message);
             };
-            askToDownload(downloadHandle, url, false);
-
+            await askToDownload(downloadHandle, url, false);
         }
 
-        public void RunAvailabilityCheck(Action<bool, string> update)
+        private async Task UpdateGeoFile4Singbox(string geoName, Config config, bool needStop, Action<bool, string> update)
         {
-            Task.Run(() =>
+            _config = config;
+            _updateFunc = update;
+            var url = string.Format(Global.singboxGeoUrl, geoName);
+
+            DownloadHandle downloadHandle = new();
+            downloadHandle.UpdateCompleted += (sender2, args) =>
             {
-                var time = (new DownloadHandle()).RunAvailabilityCheck(null);
-
-                update(false, string.Format(ResUI.TestMeOutput, time));
-            });
-        }
-
-        #region private
-
-        private async void CheckUpdateAsync(ECoreType type, bool preRelease)
-        {
-            try
-            {
-                var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
-                string url = coreInfo.coreReleaseApiUrl;
-
-                var result = await (new DownloadHandle()).DownloadStringAsync(url, true, "");
-                if (!Utils.IsNullOrEmpty(result))
+                if (args.Success)
                 {
-                    responseHandler(type, result, preRelease);
+                    _updateFunc(false, string.Format(ResUI.MsgDownloadGeoFileSuccessfully, geoName));
+                    var coreHandler = Locator.Current.GetService<CoreHandler>();
+
+                    try
+                    {
+                        if (needStop) coreHandler?.CoreStop();
+                        Task.Delay(1000);
+                        string fileName = Utils.GetTempPath(Utils.GetDownloadFileName(url));
+                        if (File.Exists(fileName))
+                        {
+                            string targetPath = Utils.GetConfigPath($"{geoName}.db");
+                            File.Copy(fileName, targetPath, true);
+
+                            File.Delete(fileName);
+                        }
+                        if (needStop) coreHandler?.LoadCore();
+                    }
+                    catch (Exception ex)
+                    {
+                        _updateFunc(false, ex.Message);
+                    }
                 }
                 else
                 {
-                    Utils.SaveLog("StatusCode error: " + url);
-                    return;
+                    _updateFunc(false, args.Msg);
                 }
-            }
-            catch (Exception ex)
+            };
+            downloadHandle.Error += (sender2, args) =>
             {
-                Utils.SaveLog(ex.Message, ex);
-                _updateFunc(false, ex.Message);
-            }
+                _updateFunc(false, args.GetException().Message);
+            };
+            await askToDownload(downloadHandle, url, false);
         }
 
-        /// <summary>
-        /// 获取V2RayCore版本
-        /// </summary>
-        private string getCoreVersion(ECoreType type)
-        {
-            try
-            {
-
-                var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
-                string filePath = string.Empty;
-                foreach (string name in coreInfo.coreExes)
-                {
-                    string vName = $"{name}.exe";
-                    vName = Utils.GetBinPath(vName, coreInfo.coreType);
-                    if (File.Exists(vName))
-                    {
-                        filePath = vName;
-                        break;
-                    }
-                }
-
-                if (!File.Exists(filePath))
-                {
-                    string msg = string.Format(ResUI.NotFoundCore, @"", "", "");
-                    //ShowMsg(true, msg);
-                    return "";
-                }
-
-                using Process p = new();
-                p.StartInfo.FileName = filePath;
-                p.StartInfo.Arguments = coreInfo.versionArg;
-                p.StartInfo.WorkingDirectory = Utils.StartupPath();
-                p.StartInfo.UseShellExecute = false;
-                p.StartInfo.RedirectStandardOutput = true;
-                p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-                p.Start();
-                p.WaitForExit(5000);
-                string echo = p.StandardOutput.ReadToEnd();
-                string version = string.Empty;
-                switch (type)
-                {
-                    case ECoreType.v2fly:
-                    case ECoreType.SagerNet:
-                    case ECoreType.Xray:
-                    case ECoreType.v2fly_v5:
-                        version = Regex.Match(echo, $"{coreInfo.match} ([0-9.]+) \\(").Groups[1].Value;
-                        break;
-                    case ECoreType.clash:
-                    case ECoreType.clash_meta:
-                        version = Regex.Match(echo, $"v[0-9.]+").Groups[0].Value;
-                        break;
-                }
-                return version;
-            }
-            catch (Exception ex)
-            {
-                Utils.SaveLog(ex.Message, ex);
-                _updateFunc(false, ex.Message);
-                return "";
-            }
-        }
-        private void responseHandler(ECoreType type, string gitHubReleaseApi, bool preRelease)
-        {
-            try
-            {
-                var gitHubReleases = Utils.FromJson<List<GitHubRelease>>(gitHubReleaseApi);
-                string version;
-                if (preRelease)
-                {
-                    version = gitHubReleases!.First().TagName;
-                }
-                else
-                {
-                    version = gitHubReleases!.First(r => r.Prerelease == false).TagName;
-                }
-                var coreInfo = LazyConfig.Instance.GetCoreInfo(type);
-
-                string curVersion;
-                string message;
-                string url;
-                switch (type)
-                {
-                    case ECoreType.v2fly:
-                    case ECoreType.SagerNet:
-                    case ECoreType.Xray:
-                    case ECoreType.v2fly_v5:
-                        {
-                            curVersion = "v" + getCoreVersion(type);
-                            message = string.Format(ResUI.IsLatestCore, curVersion);
-                            string osBit = "64";
-                            switch (RuntimeInformation.ProcessArchitecture)
-                            {
-                                case Architecture.Arm64:
-                                    osBit = "arm64-v8a";
-                                    break;
-                                case Architecture.X86:
-                                    osBit = "32";
-                                    break;
-                                default:
-                                    osBit = "64";
-                                    break;
-                            }
-
-                            url = string.Format(coreInfo.coreDownloadUrl64, version, osBit);
-                            break;
-                        }
-                    case ECoreType.clash:
-                    case ECoreType.clash_meta:
-                        {
-                            curVersion = getCoreVersion(type);
-                            message = string.Format(ResUI.IsLatestCore, curVersion);
-                            switch (RuntimeInformation.ProcessArchitecture)
-                            {
-                                case Architecture.Arm64:
-                                    url = string.Format(coreInfo.coreDownloadUrlArm64, version);
-                                    break;
-                                case Architecture.X86:
-                                    url = string.Format(coreInfo.coreDownloadUrl32, version);
-                                    break;
-                                default:
-                                    url = string.Format(coreInfo.coreDownloadUrl64, version);
-                                    break;
-                            }
-                            break;
-                        }
-                    case ECoreType.v2rayN:
-                        {
-                            curVersion = FileVersionInfo.GetVersionInfo(Utils.GetExePath()).FileVersion.ToString();
-                            message = string.Format(ResUI.IsLatestN, curVersion);
-                            switch (RuntimeInformation.ProcessArchitecture)
-                            {
-                                case Architecture.Arm64:
-                                    url = string.Format(coreInfo.coreDownloadUrlArm64, version);
-                                    break;
-                                case Architecture.X86:
-                                    url = string.Format(coreInfo.coreDownloadUrl32, version);
-                                    break;
-                                default:
-                                    url = string.Format(coreInfo.coreDownloadUrl64, version);
-                                    break;
-                            }
-                            break;
-                        }
-                    default:
-                        throw new ArgumentException("Type");
-                }
-
-                if (type == ECoreType.v2rayN)
-                {
-                    decimal.TryParse(curVersion, out decimal decCur);
-                    decimal.TryParse(version, out decimal dec);
-                    if (decCur >= dec)
-                    {
-                        AbsoluteCompleted?.Invoke(this, new ResultEventArgs(false, message));
-                        return;
-                    }
-                }
-
-                if (curVersion == version)
-                {
-                    AbsoluteCompleted?.Invoke(this, new ResultEventArgs(false, message));
-                    return;
-                }
-
-                AbsoluteCompleted?.Invoke(this, new ResultEventArgs(true, url));
-            }
-            catch (Exception ex)
-            {
-                Utils.SaveLog(ex.Message, ex);
-                _updateFunc(false, ex.Message);
-            }
-        }
-
-        private void askToDownload(DownloadHandle downloadHandle, string url, bool blAsk)
-        {
-            bool blDownload = false;
-            if (blAsk)
-            {
-                if (UI.ShowYesNo(string.Format(ResUI.DownloadYesNo, url)) == MessageBoxResult.Yes)
-                {
-                    blDownload = true;
-                }
-            }
-            else
-            {
-                blDownload = true;
-            }
-            if (blDownload)
-            {
-                downloadHandle.DownloadFileAsync(url, true, 600);
-            }
-        }
-        #endregion
+        #endregion private
     }
 }

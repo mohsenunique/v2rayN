@@ -21,7 +21,6 @@ namespace v2rayN.ViewModels
 
         public ReactiveCommand<Unit, Unit> SaveCmd { get; }
 
-
         public SubEditViewModel(SubItem subItem, Window view)
         {
             _config = LazyConfig.Instance.GetConfig();
@@ -44,6 +43,7 @@ namespace v2rayN.ViewModels
 
             Utils.SetDarkBorder(view, _config.uiItem.colorModeDark);
         }
+
         private void SaveSub()
         {
             string remarks = SelectedSource.remarks;
@@ -68,6 +68,7 @@ namespace v2rayN.ViewModels
                 item.userAgent = SelectedSource.userAgent;
                 item.sort = SelectedSource.sort;
                 item.filter = SelectedSource.filter;
+                item.convertTarget = SelectedSource.convertTarget;
             }
 
             if (ConfigHandler.AddSubItem(ref _config, item) == 0)

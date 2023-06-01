@@ -1,4 +1,5 @@
 ﻿using System.Windows.Input;
+
 namespace v2rayN.Mode
 {
     [Serializable]
@@ -51,7 +52,6 @@ namespace v2rayN.Mode
         public string user { get; set; }
 
         public string pass { get; set; }
-
     }
 
     [Serializable]
@@ -96,8 +96,6 @@ namespace v2rayN.Mode
 
         public int autoUpdateInterval { get; set; } = 10;
 
-        public int autoUpdateSubInterval { get; set; } = 10;
-
         public bool checkPreReleaseUpdate { get; set; } = false;
 
         public bool enableSecurityProtocolTls13 { get; set; }
@@ -118,6 +116,7 @@ namespace v2rayN.Mode
         public double mainGirdHeight1 { get; set; }
         public double mainGirdHeight2 { get; set; }
         public bool colorModeDark { get; set; }
+        public bool followSystemTheme { get; set; }
         public string? colorPrimaryName { get; set; }
         public string currentLanguage { get; set; }
         public string currentFontFamily { get; set; }
@@ -126,14 +125,15 @@ namespace v2rayN.Mode
         public bool doubleClick2Activate { get; set; }
         public bool autoHideStartup { get; set; } = true;
         public string mainMsgFilter { get; set; }
+        public bool showTrayTip { get; set; }
         public List<ColumnItem> mainColumnItem { get; set; }
-
     }
 
     [Serializable]
     public class ConstItem
     {
         public string defIEProxyExceptions { get; set; }
+        public string subConvertUrl { get; set; } = string.Empty;
     }
 
     [Serializable]
@@ -148,7 +148,6 @@ namespace v2rayN.Mode
         public bool Shift { get; set; }
 
         public Key? KeyCode { get; set; }
-
     }
 
     [Serializable]
@@ -163,20 +162,9 @@ namespace v2rayN.Mode
     public class TunModeItem
     {
         public bool enableTun { get; set; }
-        public bool showWindow { get; set; }
-        public bool enabledLog { get; set; }
         public bool strictRoute { get; set; }
         public string stack { get; set; }
         public int mtu { get; set; }
-        public string customTemplate { get; set; }
-        public bool bypassMode { get; set; } = true;
-        public List<string> directIP { get; set; }
-        public List<string> directProcess { get; set; }
-        public string directDNS { get; set; }
-        public List<string> proxyIP { get; set; }
-        public List<string> proxyProcess { get; set; }
-        public string proxyDNS { get; set; }
-
     }
 
     [Serializable]
@@ -185,7 +173,6 @@ namespace v2rayN.Mode
         public int speedTestTimeout { get; set; }
         public string speedTestUrl { get; set; }
         public string speedPingTestUrl { get; set; }
-
     }
 
     [Serializable]
@@ -195,6 +182,9 @@ namespace v2rayN.Mode
         /// 域名解析策略
         /// </summary>
         public string domainStrategy { get; set; }
+
+        public string domainStrategy4Singbox { get; set; }
+
         public string domainMatcher { get; set; }
         public string routingIndexId { get; set; }
         public bool enableRoutingAdvanced { get; set; }
@@ -206,5 +196,15 @@ namespace v2rayN.Mode
         public string Name { get; set; }
         public int Width { get; set; }
         public int Index { get; set; }
+    }
+
+    [Serializable]
+    public class Mux4Sbox
+    {
+        public string protocol { get; set; }
+        public int max_connections { get; set; }
+        public int min_streams { get; set; }
+        public int max_streams { get; set; }
+        public bool padding { get; set; }
     }
 }
